@@ -54,6 +54,8 @@ public class Histograms
 {
     /**
      * Creates a new {@link Histogram} with the given elements.
+     * 
+     * @param <T> The element type
      *  
      * @param elements The elements
      * @return The {@link Histogram}
@@ -68,6 +70,8 @@ public class Histograms
      * distributed among the bins based on the value that is returned 
      * by the given key extractor.<br>
      * <br>
+     * 
+     * @param <T> The element type
      *  
      * @param elements The elements
      * @param keyExtractor The key extractor
@@ -106,6 +110,8 @@ public class Histograms
      * the number of bins. The initial number of bins is not specified,
      * but will be "reasonable" for many application cases.
      * 
+     * @param <T> The element type
+     * 
      * @param elements The elements
      * @return The {@link Histogram}
      */
@@ -124,6 +130,9 @@ public class Histograms
      * The returned histogram will have a control component for changing
      * the number of bins. The initial number of bins is not specified,
      * but will be "reasonable" for many application cases.
+     * 
+     * @param <T> The element type
+     * @param <K> The key type
      * 
      * @param elements The elements
      * @param keyExtractor The key extractor
@@ -146,6 +155,9 @@ public class Histograms
      * the number of bins. The initial number of bins is not specified,
      * but will be "reasonable" for many application cases.
      * 
+     * @param <T> The element type
+     * @param <K> The key type
+     * 
      * @param elements The elements
      * @param keyExtractor The key extractor
      * @return The {@link Histogram}
@@ -166,6 +178,9 @@ public class Histograms
      * The returned histogram will have a control component for changing
      * the number of bins. The initial number of bins is not specified,
      * but will be "reasonable" for many application cases.
+     * 
+     * @param <T> The element type
+     * @param <K> The key type
      * 
      * @param elements The elements
      * @param keyExtractor The key extractor
