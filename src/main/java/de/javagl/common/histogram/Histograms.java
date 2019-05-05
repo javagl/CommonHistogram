@@ -416,7 +416,15 @@ public class Histograms
         double totalMin = binning.getBinMin(0);
         double totalMax = binning.getBinMax(binning.getBinCount() - 1);
         double difference = totalMax - totalMin;
-        String formatString = formatStringFor(difference);
+        String formatString;
+        if (difference < NumberBinning.EPSILON)
+        {
+            formatString = formatStringFor(totalMin);
+        }
+        else
+        {
+            formatString = formatStringFor(difference);
+        }
         return bin -> 
         {
             double min = binning.getBinMin(bin);
