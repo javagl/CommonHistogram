@@ -41,7 +41,7 @@ class NumberBinning<T> implements Binning<T>
      * be considered to be equal to the maximum when they are within
      * this threshold 
      */
-    private static final double EPSILON = 1e-6;
+    static final double EPSILON = 1e-6;
     
     /**
      * The key extractor

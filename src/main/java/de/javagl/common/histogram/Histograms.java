@@ -28,6 +28,7 @@ package de.javagl.common.histogram;
 
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
+import java.awt.geom.Point2D;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -41,6 +42,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.IntFunction;
+import java.util.function.ToDoubleFunction;
 
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -261,6 +263,15 @@ public class Histograms
             "The binLabelFunctionProvider may not be null");
         
         int initialNumBins = computeNumBins(elements.size());
+        
+        ToDoubleFunction<T> valueExtractor = 
+            t -> keyExtractor.apply(t).doubleValue();
+        Point2D range = 
+            Binnings.computeRange(elements, min, max, valueExtractor);
+        if (Binnings.isEmpty(range))
+        {
+            initialNumBins = 1;
+        }
         
         IntFunction<NumberBinning<T>> binningProvider = binCount ->
             Binnings.createSimpleNumberBinning(

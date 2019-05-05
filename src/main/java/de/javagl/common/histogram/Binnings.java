@@ -26,6 +26,7 @@
  */
 package de.javagl.common.histogram;
 
+import java.awt.geom.Point2D;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -64,22 +65,60 @@ class Binnings
         
         ToDoubleFunction<T> valueExtractor = 
             t -> keyExtractor.apply(t).doubleValue();
-        double actualMin = 0;
-        double actualMax = 1;
+        Point2D range = computeRange(elements, min, max, valueExtractor);
+        
+        NumberBinning<T> numberBinning = new NumberBinning<T>(
+            valueExtractor, range.getX(), range.getY(), binCount);
+        return numberBinning;
+    }
+    
+    /**
+     * Returns whether the given range is empty, meaning that its maximum
+     * is less than a machine epsilon larger than the minimum
+     * 
+     * @param range The range
+     * @return Whether the range is empty
+     */
+    static boolean isEmpty(Point2D range)
+    {
+        return (range.getY() - range.getX()) < NumberBinning.EPSILON;
+    }
+
+    /**
+     * Compute the range of the values that are extracted from the elements
+     * in the given collection. If the given minimum and maximum are not
+     * <code>null</code>, they will be used to determine the range. Otherwise,
+     * the minimum and maximum will be computed from the given elements.
+     * If the collection of elements is empty and no minimum or maximum 
+     * have been given, then an unspecified best-effort approach will be
+     * made to return a reasonable range.
+     * 
+     * @param elements The elements
+     * @param min The minimum value
+     * @param max The maximum value
+     * @param valueExtractor The value extractor
+     * @return The range
+     */
+    static <T> Point2D computeRange(
+        Collection<? extends T> elements, T min, T max, 
+        ToDoubleFunction<T> valueExtractor)
+    {
+        Double actualMin = null;
+        Double actualMax = null;
         if (min != null)
         {
-        	actualMin = keyExtractor.apply(min).doubleValue();
+            actualMin = valueExtractor.applyAsDouble(min);
         }
         else if (!elements.isEmpty())
         {
-        	actualMin = elements.stream()
-        		.mapToDouble(valueExtractor)
-        		.min()
-        		.getAsDouble();
+            actualMin = elements.stream()
+                .mapToDouble(valueExtractor)
+                .min()
+                .getAsDouble();
         }
         if (max != null)
         {
-        	actualMax = keyExtractor.apply(max).doubleValue();
+            actualMax = valueExtractor.applyAsDouble(max);
         }
         else if (!elements.isEmpty())
         {
@@ -88,18 +127,27 @@ class Binnings
                 .max()
                 .getAsDouble();
         }
-        
-        //System.out.println("Create binning with "+actualMin+" "+actualMax);
-
-        NumberBinning<T> numberBinning = 
-            new NumberBinning<T>(valueExtractor, actualMin, actualMax, binCount);
-        return numberBinning;
+        if (actualMin != null)
+        {
+            if (actualMax == null)
+            {
+                actualMax = actualMin + 1.0;
+            }
+        }
+        if (actualMax != null)
+        {
+            if (actualMin == null)
+            {
+                actualMin = actualMax - 1.0;
+            }
+        }
+        if (actualMin == null && actualMax == null)
+        {
+            actualMin = 0.0;
+            actualMax = 1.0;
+        }
+        return new Point2D.Double(actualMin, actualMax);
     }
-    /**
-     * @param binCount The number of bins
-     * @return The {@link Binning}
-     * @throws IllegalArgumentException If the bin count is not positive
-     */
 
     /**
      * Compute a simple {@link Binning} for the given elements. <br>

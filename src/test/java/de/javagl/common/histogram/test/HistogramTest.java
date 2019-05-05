@@ -8,6 +8,7 @@ import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 import java.util.function.Function;
@@ -57,6 +58,10 @@ public class HistogramTest
         Histogram<Double> smallRangeNumericHistogram = 
             createSmallRangeNumericHistogram();
         f.getContentPane().add(smallRangeNumericHistogram.getComponent());
+
+        Histogram<Double> constantNumericHistogram = 
+            createConstantNumericHistogram();
+        f.getContentPane().add(constantNumericHistogram.getComponent());
 
         Histogram<OffsetDateTime> dateHistogram = 
             createDateHistogram();
@@ -137,6 +142,16 @@ public class HistogramTest
         elements.add(100.007);
         elements.add(100.008);
         elements.add(100.009);
+        Histogram<Double> histogram = Histograms.createNumeric(elements);
+        Collection<Double> highlightedElements = selectSome(elements);
+        histogram.setElements(elements, highlightedElements);
+        addLogging(histogram);
+        return histogram;
+    }
+    
+    private static Histogram<Double> createConstantNumericHistogram()
+    {
+        List<Double> elements = Collections.nCopies(100, 100.0);
         Histogram<Double> histogram = Histograms.createNumeric(elements);
         Collection<Double> highlightedElements = selectSome(elements);
         histogram.setElements(elements, highlightedElements);
