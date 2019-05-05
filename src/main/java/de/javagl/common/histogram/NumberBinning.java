@@ -122,7 +122,7 @@ class NumberBinning<T> implements Binning<T>
             return binCount - 1;
         }
         double alpha = (value - min) / (max - min);
-        int bin = (int) (alpha * binCount);
+        int bin = (int) (alpha * binCount + EPSILON);
         if (bin < 0 || bin >= binCount)
         {
             return -1;

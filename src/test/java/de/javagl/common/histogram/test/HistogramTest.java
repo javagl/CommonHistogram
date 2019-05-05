@@ -1,13 +1,13 @@
-package de.javagl.common.histogram;
+package de.javagl.common.histogram.test;
 
 import java.awt.GridLayout;
 import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Date;
 import java.util.List;
 import java.util.Random;
 import java.util.function.Function;
@@ -19,6 +19,7 @@ import de.javagl.common.histogram.Histogram;
 import de.javagl.common.histogram.HistogramMouseEvent;
 import de.javagl.common.histogram.HistogramMouseListener;
 import de.javagl.common.histogram.Histograms;
+import de.javagl.common.histogram.NumberHistogram;
 
 /**
  * Basic integration test for the {@link Histograms} class
@@ -40,6 +41,10 @@ public class HistogramTest
         Histogram<Double> numericHistogram = 
             createNumericHistogram();
         f.getContentPane().add(numericHistogram.getComponent());
+
+        Histogram<Double> largeNumericHistogram = 
+            createLargeNumericHistogram();
+        f.getContentPane().add(largeNumericHistogram.getComponent());
         
         Histogram<String> categoricalHistogram =
             createCategoricalHistogram();
@@ -57,8 +62,12 @@ public class HistogramTest
             createDateHistogram();
         f.getContentPane().add(dateHistogram.getComponent());
         
+        Histogram<OffsetDateTime> customDateHistogram = 
+            createCustomDateHistogram();
+        f.getContentPane().add(customDateHistogram.getComponent());
         
-        f.setSize(1200, 800);
+        
+        f.setSize(1700, 800);
         f.setLocationRelativeTo(null);
         f.setVisible(true);
     }
@@ -78,7 +87,7 @@ public class HistogramTest
         Histogram<Person> histogram = 
             Histograms.createNumeric(elements, Person::getAge);
         Collection<Person> highlightedElements = selectSome(elements);
-        histogram.setElements(elements, highlightedElements);;
+        histogram.setElements(elements, highlightedElements);
         addLogging(histogram);
         return histogram;
     }
@@ -98,10 +107,20 @@ public class HistogramTest
 
     private static Histogram<Double> createNumericHistogram()
     {
-        List<Double> elements = createSomeNumericElements();
+        List<Double> elements = createNumericElements(1000);
         Histogram<Double> histogram = Histograms.createNumeric(elements);
         Collection<Double> highlightedElements = selectSome(elements);
-        histogram.setElements(elements, highlightedElements);;
+        histogram.setElements(elements, highlightedElements);
+        addLogging(histogram);
+        return histogram;
+    }
+    
+    private static Histogram<Double> createLargeNumericHistogram()
+    {
+        List<Double> elements = createNumericElements(1000000);
+        Histogram<Double> histogram = Histograms.createNumeric(elements);
+        Collection<Double> highlightedElements = selectSome(elements);
+        histogram.setElements(elements, highlightedElements);
         addLogging(histogram);
         return histogram;
     }
@@ -120,7 +139,7 @@ public class HistogramTest
         elements.add(100.009);
         Histogram<Double> histogram = Histograms.createNumeric(elements);
         Collection<Double> highlightedElements = selectSome(elements);
-        histogram.setElements(elements, highlightedElements);;
+        histogram.setElements(elements, highlightedElements);
         addLogging(histogram);
         return histogram;
     }
@@ -129,23 +148,55 @@ public class HistogramTest
     {
         List<OffsetDateTime> elements = new ArrayList<OffsetDateTime>();
         Random random = new Random(0);
-        for (int i = 0; i < 100; i++)
+        OffsetDateTime min = OffsetDateTime.of(
+            2000, 1, 1, 12, 0, 0, 0, ZoneOffset.UTC);
+        for (int i = 0; i < 1000; i++)
         {
-            long hours = random.nextInt(10);
-            elements.add(OffsetDateTime.now().plusHours(hours));
+            long minutes = random.nextInt(600);
+            elements.add(min.plusMinutes(minutes));
         }
         
         Function<OffsetDateTime, Double> keyExtractor = offsetDateTime -> 
         {
             ZonedDateTime zonedDateTime = offsetDateTime.toZonedDateTime();
             Instant instant = zonedDateTime.toInstant();
-            Date date = Date.from(instant);
-            return (double)date.getTime();
+            return (double)instant.toEpochMilli();
         };
-        Histogram<OffsetDateTime> histogram = 
+        NumberHistogram<OffsetDateTime> histogram = 
             Histograms.createForDate(elements, keyExtractor);
         Collection<OffsetDateTime> highlightedElements = selectSome(elements);
-        histogram.setElements(elements, highlightedElements);;
+        histogram.setElements(elements, highlightedElements);
+        histogram.setBinCount(3);
+        
+        addLogging(histogram);
+        return histogram;
+    }
+    
+    private static Histogram<OffsetDateTime> createCustomDateHistogram()
+    {
+        List<OffsetDateTime> elements = new ArrayList<OffsetDateTime>();
+        Random random = new Random(0);
+        OffsetDateTime min = OffsetDateTime.of(
+                2000, 1, 1, 12, 0, 0, 0, ZoneOffset.UTC);
+        OffsetDateTime max = min.plusMinutes(600);
+        for (int i = 0; i < 1000; i++)
+        {
+            long minutes = random.nextInt(600);
+            elements.add(min.plusMinutes(minutes));
+        }
+        
+        Function<OffsetDateTime, Double> keyExtractor = offsetDateTime -> 
+        {
+            ZonedDateTime zonedDateTime = offsetDateTime.toZonedDateTime();
+            Instant instant = zonedDateTime.toInstant();
+            return (double)instant.toEpochMilli();
+        };
+        NumberHistogram<OffsetDateTime> histogram = 
+            Histograms.createForDate(
+                elements, min, max, keyExtractor, "HH:mm");
+        Collection<OffsetDateTime> highlightedElements = selectSome(elements);
+        histogram.setElements(elements, highlightedElements);
+        histogram.setBinCount(5);
         
         addLogging(histogram);
         return histogram;
@@ -172,10 +223,9 @@ public class HistogramTest
     
     
 
-    private static List<Double> createSomeNumericElements()
+    private static List<Double> createNumericElements(int n)
     {
         List<Double> elements = new ArrayList<Double>();
-        int n = 1000;
         Random random = new Random(0);
         double min = -10;
         double max = 20;

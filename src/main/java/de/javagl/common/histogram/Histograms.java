@@ -115,7 +115,7 @@ public class Histograms
      * @param elements The elements
      * @return The {@link Histogram}
      */
-    public static <T extends Number & Comparable<? super T>> Histogram<T> 
+    public static <T extends Number> NumberHistogram<T> 
         createNumeric(Collection<? extends T> elements)
     {
         return createNumeric(elements, Function.identity());
@@ -138,13 +138,68 @@ public class Histograms
      * @param keyExtractor The key extractor
      * @return The {@link Histogram}
      */
-    public static <T, K extends Number & Comparable<? super K>> Histogram<T> 
+    public static <T, K extends Number> NumberHistogram<T> 
         createForDate(Collection<? extends T> elements, 
             Function<? super T, ? extends K> keyExtractor)
     {
-        return createNumeric(elements, keyExtractor, 
-            dateBinLabelFunctionProvider());
+        return createForDate(elements, keyExtractor, 
+        		"yyyy-MM-dd HH:mm:ss.SSS");
     }
+    
+    /**
+     * Create a new {@link Histogram} that shows the given elements, 
+     * distributed among the bins based on the numeric value that
+     * is returned by the given key extractor.<br>
+     * <br>
+     * The returned histogram will have a control component for changing
+     * the number of bins. The initial number of bins is not specified,
+     * but will be "reasonable" for many application cases.
+     * 
+     * @param <T> The element type
+     * @param <K> The key type
+     * 
+     * @param elements The elements
+     * @param keyExtractor The key extractor
+     * @param pattern The pattern for the date-time formatter
+     * @return The {@link Histogram}
+     */
+    public static <T, K extends Number> NumberHistogram<T> 
+        createForDate(Collection<? extends T> elements, 
+            Function<? super T, ? extends K> keyExtractor,
+            String pattern)
+    {
+        return createNumeric(elements, null, null, keyExtractor, 
+            dateBinLabelFunctionProvider(pattern));
+    }
+
+    /**
+     * Create a new {@link Histogram} that shows the given elements, 
+     * distributed among the bins based on the numeric value that
+     * is returned by the given key extractor.<br>
+     * <br>
+     * The returned histogram will have a control component for changing
+     * the number of bins. The initial number of bins is not specified,
+     * but will be "reasonable" for many application cases.
+     * 
+     * @param <T> The element type
+     * @param <K> The key type
+     * 
+     * @param elements The elements
+     * @param min The optional minimum value for the binning
+     * @param max The optional maximum value for the binning
+     * @param keyExtractor The key extractor
+     * @param pattern The pattern for the date-time formatter
+     * @return The {@link Histogram}
+     */
+    public static <T, K extends Number> NumberHistogram<T> 
+        createForDate(Collection<? extends T> elements, 
+        	T min, T max, Function<? super T, ? extends K> keyExtractor,
+            String pattern)
+    {
+        return createNumeric(elements, min, max, keyExtractor, 
+            dateBinLabelFunctionProvider(pattern));
+    }
+    
 
     /**
      * Create a new {@link Histogram} that shows the given elements, 
@@ -162,11 +217,11 @@ public class Histograms
      * @param keyExtractor The key extractor
      * @return The {@link Histogram}
      */
-    public static <T, K extends Number & Comparable<? super K>> Histogram<T> 
+    public static <T, K extends Number> NumberHistogram<T> 
         createNumeric(Collection<? extends T> elements, 
             Function<? super T, ? extends K> keyExtractor)
     {
-        return createNumeric(elements, keyExtractor, 
+        return createNumeric(elements, null, null, keyExtractor, 
             defaultBinLabelFunctionProvider());
     }
     
@@ -183,15 +238,17 @@ public class Histograms
      * @param <K> The key type
      * 
      * @param elements The elements
+     * @param min The optional minimum value for the binning
+     * @param max The optional maximum value for the binning
      * @param keyExtractor The key extractor
      * @param binLabelFunctionProvider the function that, for a given 
      * {@link NumberBinning}, returns the function that provides 
      * the bin labels
      * @return The {@link Histogram}
      */
-    private static <T, K extends Number & Comparable<? super K>> Histogram<T> 
-        createNumeric(Collection<? extends T> elements, 
-            Function<? super T, ? extends K> keyExtractor,
+    private static <T, K extends Number> NumberHistogram<T> 
+        createNumeric(Collection<? extends T> elements,
+            T min, T max, Function<? super T, ? extends K> keyExtractor,
             Function<? super NumberBinning<?>, ? extends IntFunction<String>> 
                 binLabelFunctionProvider)
     {
@@ -203,11 +260,11 @@ public class Histograms
             binLabelFunctionProvider, 
             "The binLabelFunctionProvider may not be null");
         
-        int initialNumBins = Math.max(1, (int)Math.sqrt(elements.size()));
+        int initialNumBins = computeNumBins(elements.size());
         
         IntFunction<NumberBinning<T>> binningProvider = binCount ->
             Binnings.createSimpleNumberBinning(
-                elements, keyExtractor, binCount);
+                elements, keyExtractor, binCount, min, max);
         NumberBinning<T> binning = binningProvider.apply(initialNumBins);
         IntFunction<String> binLabelFunction = 
             binLabelFunctionProvider.apply(binning);
@@ -222,35 +279,64 @@ public class Histograms
             new SpinnerNumberModel(initialNumBins, 1, 100000, 1));
         controlPanel.add(spinner, BorderLayout.CENTER);
         spinner.setFont(spinner.getFont().deriveFont(10.f));
+
+        // The bin count handling should be kept out of the 
+        // JFreeChartHistogram implementation. But the spinner 
+        // should still be updated when the bin count changes.
+        // This solution is a bit odd, but not visible to the user:
+        JFreeChartNumberHistogram<T> numberHistogram = 
+            new JFreeChartNumberHistogram<T>(
+                histogram, binningProvider, binLabelFunctionProvider)
+        {
+            @Override
+            public void setBinCount(int binCount) 
+            {
+                super.setBinCount(binCount);
+                spinner.setValue(binCount);
+            }
+        };
         
         spinner.addChangeListener(e -> 
         {
             Object value = spinner.getValue();
             Number number = (Number)value;
             int binCount = number.intValue();
-            NumberBinning<T> newBinning = binningProvider.apply(binCount);
-            IntFunction<String> newBinLabelFunction = 
-                binLabelFunctionProvider.apply(newBinning);
-            histogram.setBinning(newBinning, newBinLabelFunction);
+            numberHistogram.setBinCount(binCount);
         });
         JPanel p = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
         p.add(controlPanel);
         histogram.addControlComponent(p);
         histogram.setElements(elements, null);
-        return histogram;
+        return numberHistogram;
+    }
+    
+    /**
+     * Compute the number of bins for the given number of elements
+     * 
+     * @param n The number of elements
+     * @return The number of bins
+     */
+    private static int computeNumBins(int n)
+    {
+    	// Sturges rule for the number of bins:
+        int numBins = (int)(Math.ceil(Math.log(n) / Math.log(2)) + 1);
+        return numBins;
     }
     
 
     /**
      * Returns the function that, for a given {@link NumberBinning}, returns
-     * the function that provides the bin labels
+     * the function that provides the bin labels. The function assumes that 
+     * the values in the given binning are milliseconds since the epoch,
+     * and returns them as a date formatted with the given pattern
      * 
+     * @param pattern The date-time formatter pattern
      * @return The bin label function provider
      */
     static Function<NumberBinning<?>, IntFunction<String>> 
-        dateBinLabelFunctionProvider()
+        dateBinLabelFunctionProvider(String pattern)
     {
-        return binning -> createDateBinLabelFunction(binning);
+        return binning -> createDateBinLabelFunction(binning, pattern);
     }
     
     /**
@@ -258,20 +344,21 @@ public class Histograms
      * binning
      * 
      * @param binning The {@link NumberBinning}
+     * @param pattern The pattern for the date-time formatter
      * @return The label function
      */
     private static IntFunction<String> createDateBinLabelFunction(
-        NumberBinning<?> binning)
+        NumberBinning<?> binning, String pattern)
     {
         DateTimeFormatter formatter = 
-            DateTimeFormatter.ofPattern("yyyy-MM-dd hh:mm:ss.SSS");
+            DateTimeFormatter.ofPattern(pattern);
         return bin -> 
         {
             double min = binning.getBinMin(bin);
             double max = binning.getBinMax(bin);
             String minString = createDateBinLimitLabel(min, formatter);
             String maxString = createDateBinLimitLabel(max, formatter);
-            return minString + "..." + maxString;
+            return minString + "\n" + maxString;
         };
     }
 
@@ -325,7 +412,7 @@ public class Histograms
             double max = binning.getBinMax(bin);
             String minString = String.format(Locale.ENGLISH, formatString, min);
             String maxString = String.format(Locale.ENGLISH, formatString, max);
-            return minString + "..." + maxString;
+            return minString + "\n" + maxString;
         };
     }
     
@@ -348,7 +435,7 @@ public class Histograms
             return "%f";
         }
         double exponent = Math.floor(Math.log10(order));
-        int digits = (int)Math.abs(exponent);
+        int digits = (int)Math.abs(exponent) + 1;
         if (order >= 1.0)
         {
             digits = 0;

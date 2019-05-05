@@ -30,6 +30,7 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.Graphics2D;
+import java.awt.Paint;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -60,7 +61,7 @@ import org.jfree.data.category.CategoryDataset;
 import org.jfree.data.category.DefaultCategoryDataset;
 import org.jfree.text.G2TextMeasurer;
 import org.jfree.text.TextBlock;
-import org.jfree.text.TextUtilities;
+import org.jfree.text.TextMeasurer;
 import org.jfree.ui.RectangleEdge;
 
 /**
@@ -198,7 +199,12 @@ class JFreeChartHistogram<T> extends JPanel implements Histogram<T>
                 Number totalMinusHighlightedCount = dataset.getValue(1, col);
                 int h = highlightedCount.intValue();
                 int t = totalMinusHighlightedCount.intValue() + h;
-                return label + ": " + h + "/" + t;
+                String result = "<html>" 
+                    + label.replaceAll("\n", "<br>") 
+                    + "<br>"
+                    + h + "/" + t 
+                    + "</html>";
+                return result;
             }
         };
         barRenderer.setBaseToolTipGenerator(generator);
@@ -223,13 +229,13 @@ class JFreeChartHistogram<T> extends JPanel implements Histogram<T>
             {
                 Integer binIndex = (Integer)category;
                 String string = binLabelFunction.apply(binIndex);
-                TextBlock label = TextUtilities.createTextBlock(string,
+                TextBlock label = createTextBlock(string,
                     getTickLabelFont(category), getTickLabelPaint(category), 
-                    width, getMaximumCategoryLabelLines(), 
-                    new G2TextMeasurer(g2));
+                    width, new G2TextMeasurer(g2));
                 return label;
-            };
+            }
         };
+        domainCategoryAxis.setMaximumCategoryLabelLines(2);
         plot.setDomainAxis(domainCategoryAxis);
         
         // Avoid empty spaces. What are we living for?
@@ -254,6 +260,52 @@ class JFreeChartHistogram<T> extends JPanel implements Histogram<T>
         
         return chartPanel;
     }
+    
+    /**
+     * Create a text block from the given text. This is a specialized
+     * variant of the JFreeChart TextUtilites method. It splits the
+     * given text into lines at the line separator character, and
+     * returns a text block that contains the longest <b>suffix</b>
+     * of each line that fits into the given width.
+     * 
+     * @param text The text
+     * @param font The font
+     * @param paint The paint
+     * @param maxWidth The maximum width
+     * @param measurer The text measurer
+     * @return The text block
+     */
+    private static TextBlock createTextBlock(String text, Font font,
+           Paint paint, float maxWidth, TextMeasurer measurer) 
+    {
+        String[] lines = text.split("\n");
+        TextBlock result = new TextBlock();
+        for (String line : lines)
+        {
+            int start = 0;
+            while (true)
+            {
+                float w = measurer.getStringWidth(line, start, line.length());
+                if (w < maxWidth)
+                {
+                    break;
+                }
+                start++;
+            }
+            if (start > 0)
+            {
+                int min = Math.min(start + 3, line.length());
+                String part = "..." + line.substring(min, line.length());
+                result.addLine(part, font, paint);
+            }
+            else
+            {
+                result.addLine(line, font, paint);
+            }
+        }
+        return result;
+    }
+
 
     /**
      * Add the given control component to this component. Only for internal use.

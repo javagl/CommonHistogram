@@ -46,13 +46,15 @@ class Binnings
      * @param elements The values
      * @param keyExtractor The key extractor
      * @param binCount The number of bins
+     * @param min The optional minimum value for the binning
+     * @param max The optional maximum value for the binning
      * @return The {@link Binning}
      * @throws IllegalArgumentException If the bin count is not positive
      */
     static <T, K extends Number> NumberBinning<T> createSimpleNumberBinning(
         Collection<? extends T> elements, 
         Function<? super T, ? extends K> keyExtractor, 
-        int binCount)
+        int binCount, T min, T max)
     {
         if (binCount <= 0)
         {
@@ -62,24 +64,35 @@ class Binnings
         
         ToDoubleFunction<T> valueExtractor = 
             t -> keyExtractor.apply(t).doubleValue();
-        double min = 0;
-        double max = 1;
-        if (!elements.isEmpty())
+        double actualMin = 0;
+        double actualMax = 1;
+        if (min != null)
         {
-            min = elements.stream()
-                .mapToDouble(valueExtractor)
-                .min()
-                .getAsDouble();
-            max = elements.stream()
+        	actualMin = keyExtractor.apply(min).doubleValue();
+        }
+        else if (!elements.isEmpty())
+        {
+        	actualMin = elements.stream()
+        		.mapToDouble(valueExtractor)
+        		.min()
+        		.getAsDouble();
+        }
+        if (max != null)
+        {
+        	actualMax = keyExtractor.apply(max).doubleValue();
+        }
+        else if (!elements.isEmpty())
+        {
+            actualMax = elements.stream()
                 .mapToDouble(valueExtractor)
                 .max()
                 .getAsDouble();
         }
         
-        //System.out.println("Create binning with "+min+" "+max);
+        //System.out.println("Create binning with "+actualMin+" "+actualMax);
 
         NumberBinning<T> numberBinning = 
-            new NumberBinning<T>(valueExtractor, min, max, binCount);
+            new NumberBinning<T>(valueExtractor, actualMin, actualMax, binCount);
         return numberBinning;
     }
     /**
