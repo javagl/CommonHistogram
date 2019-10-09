@@ -406,6 +406,16 @@ class JFreeChartHistogram<T> extends JPanel implements Histogram<T>
         performUpdate();
     }
     
+    /**
+     * Returns the binning of this histogram
+     * 
+     * @return The binning
+     */
+    Binning<T> getBinning()
+    {
+        return binning;
+    }
+    
     @Override
     public JComponent getComponent()
     {

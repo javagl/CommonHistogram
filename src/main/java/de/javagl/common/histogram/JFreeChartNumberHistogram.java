@@ -106,6 +106,12 @@ class JFreeChartNumberHistogram<T> implements NumberHistogram<T>
     {
         delegate.removeHistogramMouseListener(histogramMouseListener);
     }
+    
+    @Override
+    public int getBinCount()
+    {
+        return delegate.getBinning().getBinCount();
+    }
 
     @Override
     public void setBinCount(int binCount)

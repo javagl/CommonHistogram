@@ -37,7 +37,7 @@ public class HistogramTest
     {
         JFrame f = new JFrame();
         f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        f.getContentPane().setLayout(new GridLayout(2, 0));
+        f.getContentPane().setLayout(new GridLayout(3, 0));
         
         Histogram<Double> numericHistogram = 
             createNumericHistogram();
@@ -55,6 +55,10 @@ public class HistogramTest
             createPersonHistogram();
         f.getContentPane().add(personHistogram.getComponent());
         
+        Histogram<Double> mediumRangeNumericHistogram = 
+            createMediumRangeNumericHistogram();
+        f.getContentPane().add(mediumRangeNumericHistogram.getComponent());
+
         Histogram<Double> smallRangeNumericHistogram = 
             createSmallRangeNumericHistogram();
         f.getContentPane().add(smallRangeNumericHistogram.getComponent());
@@ -130,6 +134,25 @@ public class HistogramTest
         return histogram;
     }
     
+    private static Histogram<Double> createMediumRangeNumericHistogram()
+    {
+        List<Double> elements = new ArrayList<Double>();
+        elements.add(5.1);
+        elements.add(5.2);
+        elements.add(5.3);
+        elements.add(6.4);
+        elements.add(6.5);
+        elements.add(6.6);
+        elements.add(7.7);
+        elements.add(7.8);
+        elements.add(7.9);
+        Histogram<Double> histogram = Histograms.createNumeric(elements);
+        Collection<Double> highlightedElements = selectSome(elements);
+        histogram.setElements(elements, highlightedElements);
+        addLogging(histogram);
+        return histogram;
+    }
+    
     private static Histogram<Double> createSmallRangeNumericHistogram()
     {
         List<Double> elements = new ArrayList<Double>();
@@ -148,6 +171,7 @@ public class HistogramTest
         addLogging(histogram);
         return histogram;
     }
+    
     
     private static Histogram<Double> createConstantNumericHistogram()
     {

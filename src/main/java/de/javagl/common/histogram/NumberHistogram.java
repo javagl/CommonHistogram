@@ -35,6 +35,13 @@ package de.javagl.common.histogram;
 public interface NumberHistogram<T> extends Histogram<T>
 {
     /**
+     * Returns the current bin count of this histogram
+     * 
+     * @return The bin count
+     */
+    int getBinCount();
+    
+    /**
      * Set the number of bins for this histogram
      * 
      * @param binCount The bin count
