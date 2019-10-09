@@ -455,7 +455,7 @@ public class Histograms
         }
         double exponent = Math.floor(Math.log10(order));
         int digits = (int)Math.abs(exponent) + 1;
-        if (order >= 1.0)
+        if (order >= 10.0)
         {
             digits = 0;
         }
